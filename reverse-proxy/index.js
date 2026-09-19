@@ -14,6 +14,13 @@ app.use((req, res) => {
 
   proxy.web(req, res, { target: resolveTo, changeOrigin: true });
 });
+//to automatically route request to entry file
+proxy.on("proxyReq", (proxyReq, req, res) => {
+  const url = req.url;
+  if (url === "/") {
+    proxyReq.path += "index.html";
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`running reverse proxy at port ${PORT}`);
