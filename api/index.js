@@ -1,8 +1,10 @@
 const express = require("express");
 const { generateSlug } = require("random-word-slugs");
 const { ECSClient, RunTaskCommand } = require("@aws-sdk/client-ecs");
-
 const dotenv = require("dotenv");
+const Redis = require("ioredis");
+const { Server } = require("socket.io");
+
 const PORT = 5000;
 const PROXY_PORT = process.env.PROXY_PORT || 8000;
 dotenv.config();
@@ -18,14 +20,28 @@ const ecsClient = new ECSClient({
   },
 });
 
+const subscriber = new Redis(process.env.REDIS_URL);
+
+const io = new Server({ cors: { origin: "*" } });
+
+io.on("connection", (socket) => {
+  socket.on("subscribe", (channel) => {
+    socket.join(channel);
+    socket.emit(`message`, `joined: ${channel}`);
+  });
+});
+io.listen(5001, () => {
+  console.log("socket server running on 5001");
+});
+
 app.use(express.json());
 
 app.post("/project", async (req, res) => {
-  const { gitURL } = req.body;
+  const { gitURL, slug } = req.body;
   if (!gitURL) {
     return res.status(400).json({ error: "gitURL is required" });
   }
-  const projectSlug = generateSlug();
+  const projectSlug = slug ? slug : generateSlug();
   //spins the container
   const command = new RunTaskCommand({
     cluster: config.CLUSTER,
@@ -55,6 +71,10 @@ app.post("/project", async (req, res) => {
               name: "AWS_SECRET_ACCESS_KEY",
               value: process.env.AWS_SECRET_ACCESS_KEY,
             },
+            {
+              name: "REDIS_URL",
+              value: process.env.REDIS_URL,
+            },
           ],
         },
       ],
@@ -70,6 +90,16 @@ app.post("/project", async (req, res) => {
     },
   });
 });
+
+const initRedisSubscribe = async () => {
+  await subscriber.psubscribe("logs:*");
+  console.log("subscribed to redis");
+  subscriber.on("pmessage", (pattern, channel, message) => {
+    io.to(channel).emit("message", message);
+  });
+};
+
+initRedisSubscribe();
 
 app.listen(PORT, () => {
   console.log(`api server running on port ${PORT}`);

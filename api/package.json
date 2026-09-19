@@ -13,7 +13,9 @@
     "@aws-sdk/client-ecs": "^3.1136.0",
     "dotenv": "^18.0.1",
     "express": "^5.2.1",
+    "ioredis": "^6.0.0",
     "nodemon": "^3.1.14",
-    "random-word-slugs": "^0.1.7"
+    "random-word-slugs": "^0.1.7",
+    "socket.io": "^4.8.3"
   }
 }
