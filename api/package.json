@@ -1,0 +1,19 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-ecs": "^3.1136.0",
+    "dotenv": "^18.0.1",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "random-word-slugs": "^0.1.7"
+  }
+}
