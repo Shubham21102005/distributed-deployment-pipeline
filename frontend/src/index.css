@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+/* The brief and the README sit beside the app; keep their code samples out of the utility scan. */
+@source not "../DESIGN.md";
+@source not "../README.md";
+
+@theme {
+  /* Wipe Tailwind's palette so no indigo/violet/emerald can leak back in. */
+  --color-*: initial;
+  --color-paper: #EEF0EA;     /* page background; text on the ink button */
+  --color-ink: #1C2B26;       /* primary text, current stage word, button fill, focus outline, stdout marks */
+  --color-quiet: #5B6B64;     /* secondary text, past stages, stamps, stderr marks, input border, pending button */
+  --color-deployed: #1B7A45;  /* outcome: the word Deployed and the hostname link */
+  --color-stalled: #8F5D00;   /* outcome: stalled stage word, stall notes, socket notices */
+  --color-failed: #A83A2E;    /* outcome: request-failed and validation notes, invalid input border */
+
+  /* Two families, no mono. */
+  --font-*: initial;
+  --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif;
+  --default-font-family: var(--font-body);
+
+  /* Five-step scale; phone variants for the three larger roles. */
+  --text-*: initial;
+  --text-small: 14px;
+  --text-small--line-height: 20px;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-address: 22px;
+  --text-address--line-height: 28px;
+  --text-address-sm: 18px;
+  --text-address-sm--line-height: 24px;
+  --text-title: 28px;
+  --text-title--line-height: 34px;
+  --text-title-sm: 24px;
+  --text-title-sm--line-height: 30px;
+  --text-stage: 40px;
+  --text-stage--line-height: 38px;
+  --text-stage--letter-spacing: 0.01em;
+  --text-stage-sm: 32px;
+  --text-stage-sm--line-height: 30px;
+  --text-stage-sm--letter-spacing: 0.01em;
+
+  /* One radius on the page. */
+  --radius-*: initial;
+  --radius-control: 4px;
+
+  /* Spacing stays on the default 4px base: 1=4 2=8 3=12 4=16 6=24 8=32 10=40 14=56 16=64 24=96 */
+
+  --ease-ledger: cubic-bezier(0.2, 0, 0, 1);
+
+  /* The one orchestrated moment: the Deployed word and hostname rise 8px into place. */
+  --animate-ledger-arrive: ledger-arrive 240ms var(--ease-ledger) both;
+  @keyframes ledger-arrive {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
+/* Derived values: not tokens, never used as text. */
+:root {
+  color-scheme: light;
+  --field: color-mix(in oklab, var(--color-paper) 35%, white);
+  --ink-hover: color-mix(in oklab, var(--color-ink), white 10%);
+}
+
+@layer base {
+  html { background: var(--color-paper); }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  [data-arrived] {                     /* hostname link, first 3s after programmatic focus */
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  .stamp, .clock, .count, .file-path { font-variant-numeric: tabular-nums; }
+  .wrap-any { overflow-wrap: anywhere; }
+
+  /* Colour by entry state; children use currentColor. */
+  .entry[data-state="past"]      { color: var(--color-quiet); }
+  .entry[data-state="current"],
+  .entry[data-state="stalled"],
+  .entry[data-state="deployed"]  { color: var(--color-ink); }
+  .entry[data-state="stalled"]  .stage-word,
+  .entry[data-state="stalled"]  .note      { color: var(--color-stalled); }
+  .entry[data-state="deployed"] .stage-word,
+  .entry[data-state="deployed"] .hostname  { color: var(--color-deployed); }
+
+  /* Reduced motion: the arrival has no transform or opacity change, the colour settle is instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* The four stage words: the only place the display face appears. */
+  .stage-word {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-stage-sm);
+    line-height: var(--text-stage-sm--line-height);
+    letter-spacing: var(--text-stage-sm--letter-spacing);
+  }
+  /* The ink-to-quiet settle animates only in the arrival beat; other entries simply appear. */
+  ol[data-deployed] .stage-word {
+    transition: color 240ms var(--ease-ledger);
+  }
+  @media (width >= 48rem) {
+    .stage-word {
+      font-size: var(--text-stage);
+      line-height: var(--text-stage--line-height);
+      letter-spacing: var(--text-stage--letter-spacing);
+    }
+  }
+
+  /* The one text input: field fill, 1px quiet border; the focus outline replaces the border visually. */
+  .field {
+    background: var(--field);
+    border: 1px solid var(--color-quiet);
+    border-radius: var(--radius-control);
+    color: var(--color-ink);
+  }
+  .field::placeholder { color: var(--color-quiet); opacity: 1; }
+  .field[aria-invalid="true"] { border-color: var(--color-failed); }
+  .field:focus-visible { border-color: transparent; } /* after the invalid rule: the outline replaces the border while focused */
+  .field[aria-invalid="true"]:focus-visible { outline-color: var(--color-failed); } /* one ring, in the error colour */
+  .field:read-only { cursor: progress; }
+
+  /* Primary button: ink fill, paper text; quiet while pending. */
+  .primary-button {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    transition: background-color 120ms var(--ease-ledger), transform 120ms var(--ease-ledger);
+  }
+  .primary-button:hover:enabled { background: var(--ink-hover); }
+  .primary-button:active:enabled { transform: translateY(1px); }
+  .primary-button:disabled { background: var(--color-quiet); cursor: progress; }
+
+  /* Text buttons: small, 600, ink, underlined; the underline thickens on hover and focus. */
+  .text-button {
+    position: relative;
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    font-weight: 600;
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: text-decoration-thickness 120ms var(--ease-ledger);
+  }
+  /* A 24px hit target (WCAG 2.5.8) without changing the 20px line box or the 8px rhythm. */
+  .text-button::before {
+    content: '';
+    position: absolute;
+    inset: -2px 0;
+  }
+  .text-button:hover, .text-button:focus-visible { text-decoration-thickness: 2px; }
+
+  /* The hostname link: address size, 700, deployed green, 2px underline. */
+  .hostname {
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    transition: text-decoration-thickness 120ms var(--ease-ledger);
+  }
+  .hostname:hover, .hostname:focus-visible { text-decoration-thickness: 3px; }
+
+  /* Build log card: the one bordered surface on the page. A quiet 1px boundary
+     on the field white — not a shadowed card — and a scroll region for the raw
+     lines so the ledger above it keeps its length. */
+  .log-card {
+    border: 1px solid var(--color-quiet);
+    border-radius: var(--radius-control);
+    background: var(--field);
+    padding: 16px 20px;
+  }
+  .log-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .log-scroll:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+  .log-line { padding-block: 2px; }
+  .log-line + .log-line { border-top: 1px solid color-mix(in oklab, var(--color-quiet) 22%, transparent); }
+}

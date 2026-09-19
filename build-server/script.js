@@ -30,12 +30,12 @@ async function init() {
 
   p.stdout.on("data", (data) => {
     console.log("Log: ", data.toString());
-    publishLog("logs: ", data.toString());
+    publishLog(`logs: ", ${data.toString()}`);
   });
 
   p.stderr.on("data", (data) => {
     console.log("Error: ", data.toString());
-    publishLog("Error: ", data.toString());
+    publishLog(`Error: ", ${data.toString()}`);
   });
 
   p.on("close", async () => {
@@ -63,6 +63,7 @@ async function init() {
     }
     publishLog("logs: COmpleted");
     console.log("Completed");
+    await publisher.quit();
   });
 }
 
